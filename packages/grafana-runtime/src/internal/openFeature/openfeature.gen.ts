@@ -104,6 +104,8 @@ export const FlagKeys = {
   CreateAlertRuleFromPanel: "createAlertRuleFromPanel",
   /** Enables Critical User Journey (CUJ) tracking */
   CujTracking: "cujTracking",
+  /** Business intelligence interactions on dashboards: clicking a bar chart selects values and filters the other panels instead of pinning the tooltip */
+  DashboardBiMode: "dashboard.biMode",
   /** Enables commenting on Notebook cells */
   DashboardNotebookComments: "dashboard.notebookComments",
   /** Enable notebooks, a resource in the dashboard API group for mixing text cells, code cells, and visualization panels */
@@ -907,6 +909,17 @@ export const useFlagCreateAlertRuleFromPanel = (options?: ReactFlagEvaluationOpt
  */
 export const useFlagCujTracking = (options?: ReactFlagEvaluationOptions): boolean => {
   return useFlag("cujTracking", false, options).value;
+};
+
+/**
+ * Business intelligence interactions on dashboards: clicking a bar chart selects values and filters the other panels instead of pinning the tooltip
+ *
+ * **Details:**
+ * - flag key: `dashboard.biMode`
+ * - default value: `false`
+ */
+export const useFlagDashboardBiMode = (options?: ReactFlagEvaluationOptions): boolean => {
+  return useFlag("dashboard.biMode", false, options).value;
 };
 
 /**

@@ -1642,6 +1642,20 @@
     },
     {
       "metadata": {
+        "name": "dashboard.biMode",
+        "resourceVersion": "1794839072315",
+        "creationTimestamp": "2026-11-16T14:24:32Z"
+      },
+      "spec": {
+        "description": "Business intelligence interactions on dashboards: clicking a bar chart selects values and filters the other panels instead of pinning the tooltip",
+        "stage": "experimental",
+        "codeowner": "@grafana/dashboards-squad",
+        "frontend": true,
+        "expression": "false"
+      }
+    },
+    {
+      "metadata": {
         "name": "dashboard.notebookComments",
         "resourceVersion": "1793648427125",
         "creationTimestamp": "2026-11-02T19:40:27Z"
