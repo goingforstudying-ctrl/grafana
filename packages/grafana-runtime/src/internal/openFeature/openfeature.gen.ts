@@ -104,8 +104,8 @@ export const FlagKeys = {
   CreateAlertRuleFromPanel: "createAlertRuleFromPanel",
   /** Enables Critical User Journey (CUJ) tracking */
   CujTracking: "cujTracking",
-  /** Business intelligence interactions on dashboards: clicking a bar chart selects values and filters the other panels instead of pinning the tooltip */
-  DashboardBiMode: "dashboard.biMode",
+  /** Cross filtering between panels: Alt-click (Option-click on macOS) selects and multi-selects values that filter the other panels, while the selecting panel highlights them instead of filtering itself */
+  DashboardCrossFilterSelection: "dashboard.crossFilterSelection",
   /** Enables commenting on Notebook cells */
   DashboardNotebookComments: "dashboard.notebookComments",
   /** Enable notebooks, a resource in the dashboard API group for mixing text cells, code cells, and visualization panels */
@@ -912,14 +912,14 @@ export const useFlagCujTracking = (options?: ReactFlagEvaluationOptions): boolea
 };
 
 /**
- * Business intelligence interactions on dashboards: clicking a bar chart selects values and filters the other panels instead of pinning the tooltip
+ * Cross filtering between panels: Alt-click (Option-click on macOS) selects and multi-selects values that filter the other panels, while the selecting panel highlights them instead of filtering itself
  *
  * **Details:**
- * - flag key: `dashboard.biMode`
+ * - flag key: `dashboard.crossFilterSelection`
  * - default value: `false`
  */
-export const useFlagDashboardBiMode = (options?: ReactFlagEvaluationOptions): boolean => {
-  return useFlag("dashboard.biMode", false, options).value;
+export const useFlagDashboardCrossFilterSelection = (options?: ReactFlagEvaluationOptions): boolean => {
+  return useFlag("dashboard.crossFilterSelection", false, options).value;
 };
 
 /**

@@ -49,7 +49,7 @@ export interface AdHocFilterSelectionUpdate {
   /** The value whose click produced this update */
   clickedValue: string;
   /** How the click changed the selection */
-  mode: 'replace' | 'toggle' | 'range';
+  mode: 'replace' | 'toggle';
 }
 
 /** @alpha */
@@ -120,7 +120,7 @@ export interface PanelContext {
   onAddAdHocFilters?: (items: AdHocFilterItem[]) => void;
 
   /**
-   * Sets the values this panel selects for one ad hoc filter key (business intelligence mode).
+   * Sets the values this panel selects for one ad hoc filter key (cross filter selection).
    * Replaces every editable `=` and `=|` filter on the key, whoever added it (another panel's
    * selection or a manual filter); `!=`, group-by, injected and read-only filters are kept.
    * The written filter filters the other panels on the dashboard but not this one.

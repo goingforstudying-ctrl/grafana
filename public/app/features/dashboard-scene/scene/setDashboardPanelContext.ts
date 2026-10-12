@@ -185,7 +185,7 @@ export function setDashboardPanelContext(vizPanel: VizPanel, context: PanelConte
 
     const filterVar = await getAdHocFilterVariableFor(vizPanel, datasource);
 
-    if (isBiModeEnabled()) {
+    if (isCrossFilterSelectionEnabled()) {
       const released = releaseIdenticalBiSelection(filterVar.state.filters, newFilter);
       if (released) {
         // The filter already exists as a BI selection; make it an ordinary filter for every panel instead of
@@ -246,7 +246,7 @@ export function setDashboardPanelContext(vizPanel: VizPanel, context: PanelConte
       };
     }
     const filterVar = await getAdHocFilterVariableFor(vizPanel, datasource);
-    bulkUpdateAdHocFiltersVariable(filterVar, items, isBiModeEnabled());
+    bulkUpdateAdHocFiltersVariable(filterVar, items, isCrossFilterSelectionEnabled());
 
     if (items.length > 0) {
       const isFilterOut = items.every((item) => item.operator === FILTER_OUT_OPERATOR);
@@ -257,7 +257,7 @@ export function setDashboardPanelContext(vizPanel: VizPanel, context: PanelConte
     }
   };
 
-  if (isBiModeEnabled()) {
+  if (isCrossFilterSelectionEnabled()) {
     setBiSelectionContext(vizPanel, context);
   }
 
@@ -317,7 +317,7 @@ function isSeriesLimitShown(vizPanel: VizPanel): boolean {
 }
 
 /**
- * BI mode cross filtering: a panel writes its selection as an ordinary ad hoc filter stamped with the
+ * Cross filter selection: a panel writes its selection as an ordinary ad hoc filter stamped with the
  * panel's identity, so DashboardScene.enrichDataRequestFilters can keep it from filtering that panel.
  */
 function setBiSelectionContext(vizPanel: VizPanel, context: PanelContext) {
@@ -511,8 +511,8 @@ async function rerunTypeOnlyQueryRunners(filterVar: AdHocFiltersVariable) {
   );
 }
 
-function isBiModeEnabled() {
-  return getFeatureFlagClient().getBooleanValue(FlagKeys.DashboardBiMode, false);
+function isCrossFilterSelectionEnabled() {
+  return getFeatureFlagClient().getBooleanValue(FlagKeys.DashboardCrossFilterSelection, false);
 }
 
 /**

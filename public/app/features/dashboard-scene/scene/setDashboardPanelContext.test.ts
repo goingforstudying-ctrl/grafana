@@ -93,9 +93,9 @@ const mockIsAnnotationApiAvailable = jest.mocked(isAnnotationApiAvailable);
 const mockGetFeatureFlagClient = jest.mocked(getFeatureFlagClient);
 const getBooleanValueFn = jest.fn();
 
-function stubBiModeEnabled() {
+function stubCrossFilterSelectionEnabled() {
   getBooleanValueFn.mockImplementation((key: string, defaultValue: boolean) =>
-    key === FlagKeys.DashboardBiMode ? true : defaultValue
+    key === FlagKeys.DashboardCrossFilterSelection ? true : defaultValue
   );
 }
 
@@ -830,7 +830,7 @@ describe('setDashboardPanelContext', () => {
     });
 
     async function buildBiScene(options: SceneOptions = { existingFilterVariable: true }) {
-      stubBiModeEnabled();
+      stubCrossFilterSelectionEnabled();
       const built = buildTestScene(options);
       const variable = options.existingFilterVariable
         ? await getAdHocFilterVariableFor(built.scene, { uid: 'my-ds-uid' })
@@ -838,7 +838,7 @@ describe('setDashboardPanelContext', () => {
       return { ...built, variable };
     }
 
-    it('is not available while BI mode is off', () => {
+    it('is not available while cross filter selection is off', () => {
       const { context } = buildTestScene({ existingFilterVariable: true });
 
       expect(context.onSetAdHocFilterSelection).toBeUndefined();
@@ -900,7 +900,7 @@ describe('setDashboardPanelContext', () => {
         key: 'country',
         values: ['UK', 'FR', 'DE'],
         clickedValue: 'FR',
-        mode: 'range',
+        mode: 'toggle',
       });
 
       expect(variable!.state.filters).toEqual([
@@ -1167,7 +1167,7 @@ describe('setDashboardPanelContext', () => {
         expect(onValueChanged).toHaveBeenCalledTimes(1);
       });
 
-      it('keeps the existing behaviour while BI mode is off', async () => {
+      it('keeps the existing behaviour while cross filter selection is off', async () => {
         const { context, scene } = buildTestScene({ existingFilterVariable: true });
         const variable = await getAdHocFilterVariableFor(scene, { uid: 'my-ds-uid' });
         variable.setState({ filters: [stampedUK()] });
