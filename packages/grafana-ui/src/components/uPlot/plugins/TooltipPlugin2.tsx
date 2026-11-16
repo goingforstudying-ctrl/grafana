@@ -156,11 +156,14 @@ export const TooltipPlugin2 = ({
   const getAdHocFiltersRef = useRef(getAdHocFilters);
   getAdHocFiltersRef.current = getAdHocFilters;
 
+  // read by the plot's click handlers, which only run after a commit
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
-
   const selectOnlyRef = useRef(selectOnly);
-  selectOnlyRef.current = selectOnly;
+
+  useLayoutEffect(() => {
+    onSelectRef.current = onSelect;
+    selectOnlyRef.current = selectOnly;
+  });
 
   useLayoutEffect(() => {
     sizeRef.current?.observer.disconnect();
@@ -792,7 +795,11 @@ export const TooltipPlugin2 = ({
     }
   }, [isHovering]);
 
-  if (plotRef.current && isHovering && !selectOnly) {
+  if (selectOnly) {
+    return null;
+  }
+
+  if (plotRef.current && isHovering) {
     return createPortal(
       <div
         className={cx(styles.tooltipWrapper, isPinned && styles.pinned)}

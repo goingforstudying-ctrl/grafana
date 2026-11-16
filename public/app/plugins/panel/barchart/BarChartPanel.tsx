@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type uPlot from 'uplot';
 
 import { type PanelProps, VizOrientation } from '@grafana/data';
@@ -157,7 +157,6 @@ export const BarChartPanel = (props: PanelProps<Options>) => {
 
   // read by the bars draw hook, so a selection change needs only a redraw, not a new config
   const selectedIndicesRef = useRef<Set<number> | null>(null);
-  selectedIndicesRef.current = selectedIndices;
   const getSelection = useCallback(() => selectedIndicesRef.current, []);
 
   const plotRef = useRef<uPlot | null>(null);
@@ -165,7 +164,9 @@ export const BarChartPanel = (props: PanelProps<Options>) => {
     plotRef.current = u;
   }, []);
 
-  useEffect(() => {
+  // update the selection the draw hook reads, then redraw, before the browser paints
+  useLayoutEffect(() => {
+    selectedIndicesRef.current = selectedIndices;
     plotRef.current?.redraw(false);
   }, [selectedIndices]);
 
@@ -218,7 +219,9 @@ export const BarChartPanel = (props: PanelProps<Options>) => {
     () => {
       return xGroupsCount === 0
         ? { builder: null, prepData: null }
-        : prepConfig({
+        : // prepConfig only hands getSelection to the bars draw hook, which uPlot calls after render
+          // eslint-disable-next-line react-hooks/refs
+          prepConfig({
             series: vizSeries,
             totalSeries,
             color: info.color,

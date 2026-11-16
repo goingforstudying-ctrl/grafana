@@ -42,7 +42,7 @@ function matches(row: Row, { key, op, value }: { key: string; op: string; value:
 }
 
 /** Grouping labels of a `sum by(a, b) (...)` expression; identifies which panel sent it. */
-export function groupingOf(expr: string): string {
+function groupingOf(expr: string): string {
   return /sum by\(([^)]*)\)/.exec(expr)?.[1].replace(/\s/g, '') ?? '';
 }
 
@@ -142,12 +142,4 @@ export async function clickBar(
     `hovering ${categories[index]}`
   ).toBeVisible();
   await over.click({ position, force: true, modifiers });
-}
-
-/** Region and product text of each data row in the Details table. */
-export async function detailRows(table: Locator): Promise<string[]> {
-  const rows = table.locator('[role="row"]');
-  // First row is the header.
-  const texts = await rows.allInnerTexts();
-  return texts.slice(1).map((t) => t.replace(/\s+/g, ' ').trim());
 }

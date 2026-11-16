@@ -1,4 +1,4 @@
-export type SelectionMode = 'replace' | 'toggle';
+type SelectionMode = 'replace' | 'toggle';
 
 export interface SelectionClickInput {
   /** Category values in display order */
