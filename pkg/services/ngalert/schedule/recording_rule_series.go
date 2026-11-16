@@ -82,6 +82,25 @@ func (s writtenSeries) has(target seriesTarget, fp data.Fingerprint) bool {
 	return false
 }
 
+// equal compares targets and series fingerprints. The labels of a fingerprint never differ.
+func (s writtenSeries) equal(other writtenSeries) bool {
+	if len(s) != len(other) {
+		return false
+	}
+	for target, set := range s {
+		otherSet, ok := other[target]
+		if !ok || len(set) != len(otherSet) {
+			return false
+		}
+		for fp := range set {
+			if _, ok := otherSet[fp]; !ok {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (s writtenSeries) merge(other writtenSeries) writtenSeries {
 	if len(other) == 0 {
 		return s

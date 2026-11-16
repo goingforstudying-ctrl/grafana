@@ -54,6 +54,11 @@ type recordingRule struct {
 
 	// Series from the last successful evaluation, to stale the ones that go missing.
 	written writtenSeries
+	// seriesStore persists written, so a restart or a move to another instance does not forget it.
+	// savedSeries mirrors the persisted copy, and the store is only written after the set changed.
+	seriesStore *recordingRuleSeriesStore
+	savedSeries writtenSeries
+	restored    bool
 	// Latest tick an evaluation started for, whether or not it wrote. Only touched from Run.
 	lastTick time.Time
 
@@ -77,6 +82,7 @@ func newRecordingRule(
 	metrics *metrics.Scheduler,
 	tracer tracing.Tracer,
 	writer RecordingWriter,
+	seriesStore *recordingRuleSeriesStore,
 	evalAppliedHook evalAppliedFunc,
 	stopAppliedHook stopAppliedFunc,
 ) *recordingRule {
@@ -100,6 +106,7 @@ func newRecordingRule(
 		metrics:             metrics,
 		tracer:              tracer,
 		writer:              writer,
+		seriesStore:         seriesStore,
 	}
 }
 
@@ -182,6 +189,9 @@ func (r *recordingRule) Run() error {
 func (r *recordingRule) doEvaluate(ctx context.Context, ev *Evaluation) {
 	logger := r.logger.FromContext(ctx).New("now", ev.scheduledAt, "fingerprint", ev.Fingerprint())
 	orgID := fmt.Sprint(ev.rule.OrgID)
+
+	r.restoreWritten(ctx)
+	defer r.syncWritten(ctx, logger)
 	evalDuration := r.metrics.EvalDuration.WithLabelValues(orgID)
 	evalAttemptTotal := r.metrics.EvalAttemptTotal.WithLabelValues(orgID)
 	evalAttemptFailures := r.metrics.EvalAttemptFailures.WithLabelValues(orgID)
@@ -362,14 +372,64 @@ func (r *recordingRule) staleOnStop(ctx context.Context) {
 	if !errors.Is(reason, errRuleDeleted) && !errors.Is(reason, errRuleRestarted) {
 		return
 	}
-	if len(r.written) == 0 || r.lastTick.IsZero() {
+	// A rule deleted before its first evaluation may still have series from a previous run.
+	r.restoreWritten(ctx)
+	if len(r.written) == 0 {
 		return
 	}
 
 	// The rule's own context is cancelled by now.
 	writeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), staleOnStopTimeout)
 	defer cancel()
-	r.markStale(writeCtx, r.lastTick.Add(time.Millisecond), r.logger)
+
+	markerAt := r.lastTick.Add(time.Millisecond)
+	if r.lastTick.IsZero() {
+		// Restored state carries no tick of its own. The newest sample is older than now.
+		markerAt = r.clock.Now()
+	}
+	r.markStale(writeCtx, markerAt, r.logger)
+
+	// The rule is gone for good, so its persisted series go with it.
+	if err := r.seriesStore.Delete(writeCtx, r.key.OrgID, r.key.UID); err != nil {
+		r.logger.Warn("Failed to delete the persisted written series", "error", err)
+	}
+}
+
+// restoreWritten loads the series the rule wrote before a restart or a move to another
+// instance, so their stale markers are still written when they do not come back.
+func (r *recordingRule) restoreWritten(ctx context.Context) {
+	if r.restored {
+		return
+	}
+	r.restored = true
+
+	restored, err := r.seriesStore.Load(ctx, r.key.OrgID, r.key.UID)
+	if err != nil {
+		r.logger.Warn("Failed to load the persisted written series, markers for series lost to a restart are not written", "error", err)
+		return
+	}
+	if len(restored) == 0 {
+		return
+	}
+	r.written = restored
+	r.savedSeries = restored
+	r.logger.Debug("Restored the persisted written series", "targets", len(restored))
+}
+
+// syncWritten persists the remembered series once per change. A healthy rule outputs the
+// same series every tick, so the steady state writes nothing.
+func (r *recordingRule) syncWritten(ctx context.Context, logger log.Logger) {
+	if r.seriesStore == nil {
+		return
+	}
+	if r.written.equal(r.savedSeries) {
+		return
+	}
+	if err := r.seriesStore.Save(ctx, r.key.OrgID, r.key.UID, r.written); err != nil {
+		logger.Warn("Failed to persist the written series", "error", err)
+		return
+	}
+	r.savedSeries = r.written
 }
 
 // markStale stales every remembered series and forgets the ones that were staled.

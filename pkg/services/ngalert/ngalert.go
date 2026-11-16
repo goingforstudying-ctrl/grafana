@@ -413,6 +413,7 @@ func (ng *AlertNG) init() error {
 		Log:                  log.New("ngalert.scheduler"),
 		RecordingWriter:      ng.RecordingWriter,
 		FeatureToggles:       ng.FeatureToggles,
+		KVStore:              ng.KVStore,
 	}
 
 	history, err := configureHistorianBackend(

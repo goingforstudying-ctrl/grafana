@@ -11,6 +11,7 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
+	"github.com/grafana/grafana/pkg/infra/kvstore"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
@@ -108,6 +109,9 @@ type schedule struct {
 	tracer          tracing.Tracer
 	featureToggles  featuremgmt.FeatureToggles
 	recordingWriter RecordingWriter
+
+	// recordingSeriesStore persists the written series of recording rules across restarts.
+	recordingSeriesStore *recordingRuleSeriesStore
 }
 
 // RetryConfig configures the exponential backoff for alert rule and recording rule evaluations.
@@ -138,6 +142,7 @@ type SchedulerCfg struct {
 	RecordingWriter        RecordingWriter
 	RuleStopReasonProvider AlertRuleStopReasonProvider
 	FeatureToggles         featuremgmt.FeatureToggles
+	KVStore                kvstore.KVStore
 }
 
 // NewScheduler returns a new scheduler.
@@ -173,6 +178,7 @@ func NewScheduler(cfg SchedulerCfg, stateManager *state.Manager) *schedule {
 		recordingWriter:        cfg.RecordingWriter,
 		ruleStopReasonProvider: cfg.RuleStopReasonProvider,
 		featureToggles:         cfg.FeatureToggles,
+		recordingSeriesStore:   newRecordingRuleSeriesStore(cfg.KVStore, cfg.Log),
 	}
 
 	return &sch
@@ -323,6 +329,7 @@ func (sch *schedule) processTick(ctx context.Context, dispatcherGroup *errgroup.
 		sch.tracer,
 		sch.featureToggles,
 		sch.recordingWriter,
+		sch.recordingSeriesStore,
 		sch.evalAppliedFunc,
 		sch.stopAppliedFunc,
 	)

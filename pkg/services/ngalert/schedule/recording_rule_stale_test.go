@@ -13,6 +13,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 
+	"github.com/grafana/grafana/pkg/infra/kvstore"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/infra/tracing"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
@@ -58,6 +59,7 @@ type staleHarness struct {
 	ev        *scriptedEvaluator
 	model     *models.AlertRule
 	now       time.Time
+	kv        kvstore.KVStore
 	writes    int
 	events    []string
 	stale     []staleCall
@@ -68,9 +70,22 @@ type staleHarness struct {
 }
 
 func newStaleHarness(t *testing.T) *staleHarness {
+	return newStaleHarnessWithKV(t, kvstore.NewFakeKVStore())
+}
+
+// staleHarnessKey is a production-shaped identity: the key org matches the model org, the
+// way the scheduler builds it, so the persisted series targets line up after a reload.
+var staleHarnessKey = models.AlertRuleKeyWithGroup{
+	RuleGroup:    "test-group",
+	AlertRuleKey: models.AlertRuleKey{OrgID: 123, UID: "stale-test-rule"},
+}
+
+// newStaleHarnessWithKV builds a rule over a shared store, so a test can start a second
+// rule where the first left off, as a restart or a move to another instance would.
+func newStaleHarnessWithKV(t *testing.T, kv kvstore.KVStore) *staleHarness {
 	t.Helper()
 
-	h := &staleHarness{t: t, ev: &scriptedEvaluator{}, now: time.Unix(1_700_000_000, 0)}
+	h := &staleHarness{t: t, ev: &scriptedEvaluator{}, now: time.Unix(1_700_000_000, 0), kv: kv}
 	h.model = models.RuleGen.With(models.RuleGen.WithAllRecordingRules(), models.RuleGen.WithOrgID(123)).GenerateRef()
 	h.model.Record.Metric = "my_metric"
 	h.model.Record.TargetDatasourceUID = "ds-1"
@@ -105,7 +120,7 @@ func newStaleHarness(t *testing.T) *staleHarness {
 
 	h.rule = newRecordingRule(
 		parent,
-		models.AlertRuleKeyWithGroup{},
+		staleHarnessKey,
 		RetryConfig{MaxAttempts: 1},
 		clock.NewMock(),
 		&scriptedEvaluatorFactory{ev: h.ev},
@@ -114,6 +129,7 @@ func newStaleHarness(t *testing.T) *staleHarness {
 		metrics.NewNGAlert(prometheus.NewPedanticRegistry()).GetSchedulerMetrics(),
 		tracing.InitializeTracerForTest(),
 		&dsAgnosticWriter{FakeWriter: fake},
+		newRecordingRuleSeriesStore(h.kv, log.NewNopLogger()),
 		nil,
 		nil,
 	)
